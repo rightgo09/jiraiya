@@ -1,0 +1,9 @@
+requires "URI";
+requires "Mouse";
+requires "AnyEvent";
+requires "AnyEvent::IRC::Client";
+requires "MIME::Base64";
+requires "Furl";
+requires "IO::Socket::SSL";
+requires "Encode";
+requires "JSON";
