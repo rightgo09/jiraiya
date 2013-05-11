@@ -2,6 +2,8 @@ package Jiraiya {
   use Mouse;
   use Mouse::Util::TypeConstraints;
   use URI;
+  use MIME::Base64;
+  use Furl;
 
   my $subtype_uri = subtype 'Jiraiya::URI'
     => as class_type('URI');
@@ -18,6 +20,7 @@ package Jiraiya {
   has 'irc_password' => (is => 'ro', isa => 'Str',     required => 1);
 
   has 'nick'   => (is => 'ro', isa => 'Str',             default => 'jiraiya');
+  has 'api'    => (is => 'ro', isa => 'Jiraiya::API',    default => \&default_api,    lazy => 1);
   has 'recipe' => (is => 'ro', isa => 'Jiraiya::Recipe', default => \&default_recipe, lazy => 1);
 
   has 'cv'  => (is => 'rw', isa => 'AnyEvent::CondVar'    );
@@ -39,6 +42,7 @@ package Jiraiya {
 
   use AnyEvent;
   use AnyEvent::IRC::Client;
+  use Jiraiya::API;
   use Jiraiya::Recipe;
 
   sub init {
@@ -57,15 +61,23 @@ package Jiraiya {
     $self->irc($irc);
   }
 
+  sub default_api {
+    my $self = shift;
+    my $api = Jiraiya::API->new(
+      base_url => $self->jira_url,
+      furl => Furl->new(
+        headers => ['Authorization' => 'Basic '.encode_base64($self->jira_user_id.":".$self->jira_user_pw)],
+      ),
+    );
+    return $api;
+  }
+
   sub default_recipe {
     my $self = shift;
     my $recipe = Jiraiya::Recipe->new({
+      api      => $self->api,
       nick     => $self->nick,
       channels => $self->irc_channels,
-
-      jira_url     => $self->jira_url,
-      jira_user_id => $self->jira_user_id,
-      jira_user_pw => $self->jira_user_pw,
     });
     return $recipe;
   }
